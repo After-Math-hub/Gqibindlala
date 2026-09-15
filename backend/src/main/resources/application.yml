@@ -1,0 +1,27 @@
+spring:
+  application:
+    name: gqibindlala-booking
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/gqibindlala
+    username: ${DB_USERNAME:gqibindlala}
+    password: ${DB_PASSWORD:changeme}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate   # schema is owned by Flyway migrations, not Hibernate
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+server:
+  port: 8080
+
+jwt:
+  secret: ${JWT_SECRET:change-this-to-a-long-random-secret-in-production}
+  expiration-ms: 86400000  # 24h
