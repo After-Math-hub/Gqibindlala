@@ -71,8 +71,12 @@ function AuthPanel({ redirectTo }: { redirectTo: string }) {
       } else await login(email, password);
       navigate(redirectTo, { replace: true });
     } catch (requestError) {
-      const message = (requestError as { response?: { data?: { message?: string } } }).response?.data?.message;
-      setError(message || (registering ? "We couldn't create your account. Check the details and try again." : "Email or password wasn't recognised."));
+      const requestFailure = requestError as { response?: { data?: { message?: string; detail?: string } } };
+      const responseData = requestFailure.response?.data;
+      const message = responseData?.detail || responseData?.message;
+      setError(message || (requestFailure.response
+        ? (registering ? "We couldn't create your account. Check the details and try again." : "Email or password wasn't recognised.")
+        : "We couldn't reach the account service. Please try again later."));
     } finally {
       setSubmitting(false);
     }
