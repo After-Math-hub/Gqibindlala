@@ -6,6 +6,10 @@ import {
   Department,
   Equipment,
   FulfillmentStatus,
+  FinanceRequestStatus,
+  InventoryChangeRecord,
+  InventoryChangeMessage,
+  InventoryChangeType,
   OrderMessage,
   UserProfile,
 } from "../types/equipment";
@@ -43,20 +47,37 @@ export async function fetchEquipment(): Promise<Equipment[]> {
   return data;
 }
 
-export async function fetchAdminEquipment(): Promise<Equipment[]> {
-  const { data } = await api.get<Equipment[]>("/equipment/admin");
+export async function fetchInventoryChanges(admin = false): Promise<InventoryChangeRecord[]> {
+  const { data } = await api.get<InventoryChangeRecord[]>(admin ? "/inventory-change-requests" : "/inventory-change-requests/mine");
   return data;
 }
 
-export async function createEquipment(details: {
-  name: string;
-  description: string;
-  totalQuantity: number;
-  pricePerUnitPerDay: number;
-  imageUrl: string;
-  departmentId: number;
-}): Promise<Equipment> {
-  const { data } = await api.post<Equipment>("/equipment", details);
+export async function submitInventoryChange(details: {
+  changeType: InventoryChangeType;
+  equipmentId?: number;
+  name?: string;
+  description?: string;
+  quantity?: number;
+  pricePerUnitPerDay?: number;
+  imageUrl?: string;
+  reason: string;
+}): Promise<InventoryChangeRecord> {
+  const { data } = await api.post<InventoryChangeRecord>("/inventory-change-requests", details);
+  return data;
+}
+
+export async function reviewInventoryChange(id: number, approve: boolean, reviewNote: string) {
+  const { data } = await api.post<InventoryChangeRecord>(`/inventory-change-requests/${id}/review`, { approve, reviewNote });
+  return data;
+}
+
+export async function fetchInventoryChangeMessages(requestId: number): Promise<InventoryChangeMessage[]> {
+  const { data } = await api.get<InventoryChangeMessage[]>(`/inventory-change-requests/${requestId}/messages`);
+  return data;
+}
+
+export async function sendInventoryChangeMessage(requestId: number, content: string): Promise<InventoryChangeMessage> {
+  const { data } = await api.post<InventoryChangeMessage>(`/inventory-change-requests/${requestId}/messages`, { content });
   return data;
 }
 
@@ -108,9 +129,11 @@ export async function checkAvailability(
 }
 
 export async function submitBooking(
-  items: BookingItemDraft[]
+  items: BookingItemDraft[],
+  paymentOption: "FULL_PAYMENT" | "REQUEST_FINANCE"
 ) {
   const { data } = await api.post("/bookings", {
+    paymentOption,
     items: items.map((i) => ({
       equipmentId: i.equipmentId,
       quantity: i.quantity,
@@ -118,6 +141,16 @@ export async function submitBooking(
       endDate: i.endDate,
     })),
   });
+  return data;
+}
+
+export async function fetchFinanceRequests(): Promise<BookingRecord[]> {
+  const { data } = await api.get<BookingRecord[]>("/bookings/finance-requests");
+  return data;
+}
+
+export async function updateFinanceRequestStatus(bookingId: number, status: FinanceRequestStatus) {
+  const { data } = await api.patch<BookingRecord>(`/bookings/${bookingId}/finance-request`, { status });
   return data;
 }
 
@@ -152,6 +185,11 @@ export async function updateFulfillment(itemId: number, status: FulfillmentStatu
   return data;
 }
 
+export async function issueQuotation(itemId: number): Promise<BookingRecord> {
+  const { data } = await api.post<BookingRecord>(`/bookings/items/${itemId}/quotation`);
+  return data;
+}
+
 export async function createStaffAccount(details: {
   fullName: string;
   personalEmail: string | null;
@@ -161,6 +199,16 @@ export async function createStaffAccount(details: {
   departmentId: number;
 }) {
   const { data } = await api.post<UserProfile>("/staff", details);
+  return data;
+}
+
+export async function fetchStaffUsers(): Promise<UserProfile[]> {
+  const { data } = await api.get<UserProfile[]>("/staff");
+  return data;
+}
+
+export async function setStaffUserActive(userId: number, active: boolean): Promise<UserProfile> {
+  const { data } = await api.patch<UserProfile>(`/staff/${userId}/active`, undefined, { params: { active } });
   return data;
 }
 

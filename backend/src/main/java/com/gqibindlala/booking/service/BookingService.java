@@ -50,6 +50,8 @@ public class BookingService {
         booking.setCustomerContact(customer.getPhone());
         booking.setStatus(BookingStatus.PENDING);
         booking.setPaymentStatus(PaymentStatus.UNPAID);
+        booking.setFinanceRequestStatus(request.getPaymentOption() == CheckoutPaymentOption.REQUEST_FINANCE
+            ? FinanceRequestStatus.REQUESTED : FinanceRequestStatus.NOT_REQUESTED);
 
         for (BookingItemRequest itemReq : request.getItems()) {
             if (itemReq.getStartDate().isBefore(java.time.LocalDate.now())
@@ -147,6 +149,14 @@ public class BookingService {
                 || booking.getPaymentStatus() == PaymentStatus.PAID) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "This order cannot accept a payment reference");
         }
+        if (booking.getItems().stream().anyMatch(item -> item.getQuotationIssuedAt() == null)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Wait until every department has issued its quotation");
+        }
+        if (booking.getFinanceRequestStatus() != FinanceRequestStatus.NOT_REQUESTED
+                && booking.getFinanceRequestStatus() != FinanceRequestStatus.RESPONDED
+                && booking.getFinanceRequestStatus() != FinanceRequestStatus.DECLINED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Wait for the Finance team to respond before submitting payment");
+        }
         booking.setPaymentReference(reference.trim());
         booking.setPaymentStatus(PaymentStatus.SUBMITTED);
         booking.setPaymentReviewedAt(null);
@@ -160,8 +170,65 @@ public class BookingService {
     }
 
     @Transactional(readOnly = true)
+    public java.util.List<BookingRequest> financeRequestQueue() {
+        return bookingRequestRepository.findByFinanceRequestStatusInOrderByCreatedAtDesc(java.util.List.of(
+            FinanceRequestStatus.REQUESTED, FinanceRequestStatus.IN_DISCUSSION, FinanceRequestStatus.RESPONDED));
+    }
+
+    @Transactional
+    public BookingRequest updateFinanceRequestStatus(Long bookingId, FinanceRequestStatus status,
+                                                      AuthPrincipal reviewer) {
+        if (reviewer.role() != AppRole.PAYMENTS && reviewer.role() != AppRole.ADMIN) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        }
+        if (status == FinanceRequestStatus.NOT_REQUESTED || status == FinanceRequestStatus.REQUESTED) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Choose a Finance review status");
+        }
+        BookingRequest booking = bookingRequestRepository.findById(bookingId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found"));
+        FinanceRequestStatus current = booking.getFinanceRequestStatus();
+        boolean validTransition = (current == FinanceRequestStatus.REQUESTED
+                && (status == FinanceRequestStatus.IN_DISCUSSION || status == FinanceRequestStatus.DECLINED))
+            || (current == FinanceRequestStatus.IN_DISCUSSION
+                && (status == FinanceRequestStatus.RESPONDED || status == FinanceRequestStatus.DECLINED));
+        if (!validTransition) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "This Finance request has already been resolved or cannot make that transition");
+        }
+        booking.setFinanceRequestStatus(status);
+        return bookingRequestRepository.save(booking);
+    }
+
+    @Transactional(readOnly = true)
     public java.util.List<BookingRequest> departmentOrders(Long departmentId) {
-        return bookingItemRepository.findDepartmentBookings(departmentId, BookingStatus.CONFIRMED);
+        return bookingItemRepository.findDepartmentBookings(departmentId,
+            java.util.List.of(BookingStatus.PENDING, BookingStatus.CONFIRMED));
+    }
+
+    @Transactional
+    public BookingItem issueQuotation(Long itemId, AuthPrincipal principal) {
+        if (principal.role() != AppRole.DEPARTMENT || principal.departmentId() == null) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        }
+        BookingItem item = bookingItemRepository.findById(itemId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Order item not found"));
+        if (!item.getEquipment().getDepartment().getId().equals(principal.departmentId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "This item belongs to another department");
+        }
+        if (item.getStatus() != BookingStatus.PENDING || item.getQuotationIssuedAt() != null) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "This line cannot be quoted again");
+        }
+        if (!availabilityService.isAvailable(item.getEquipment().getId(), item.getStartDate(),
+                item.getEndDate(), item.getQuantity())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "This quantity is no longer available for the selected dates");
+        }
+        AppUser staff = userRepository.findById(principal.id())
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
+        item.setUnitPrice(item.getEquipment().getPricePerUnitPerDay());
+        item.setLineTotal(calculateLineTotal(item.getUnitPrice(), item.getQuantity(),
+            item.getStartDate(), item.getEndDate()));
+        item.setQuotationIssuedAt(java.time.Instant.now());
+        item.setQuotationIssuedBy(staff);
+        return bookingItemRepository.save(item);
     }
 
     @Transactional

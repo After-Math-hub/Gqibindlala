@@ -3,11 +3,13 @@ package com.gqibindlala.booking.dto;
 import com.gqibindlala.booking.model.BookingRequest;
 import com.gqibindlala.booking.model.BookingStatus;
 import com.gqibindlala.booking.model.PaymentStatus;
+import com.gqibindlala.booking.model.FinanceRequestStatus;
 import java.time.Instant;
 import java.util.List;
 
 public record BookingResponse(Long id, String customerName, String customerContact, BookingStatus status,
-                              PaymentStatus paymentStatus, String paymentReference, Instant createdAt,
+                              PaymentStatus paymentStatus, FinanceRequestStatus financeRequestStatus,
+                              String paymentReference, Instant createdAt,
                               List<BookingItemResponse> items) {
     public static BookingResponse from(BookingRequest booking) {
         return from(booking, true, null);
@@ -25,6 +27,7 @@ public record BookingResponse(Long id, String customerName, String customerConta
             .toList();
         return new BookingResponse(booking.getId(), booking.getCustomerName(), booking.getCustomerContact(),
             booking.getStatus(), booking.getPaymentStatus(),
+            booking.getFinanceRequestStatus(),
             includePaymentReference ? booking.getPaymentReference() : null,
             booking.getCreatedAt(), items);
     }

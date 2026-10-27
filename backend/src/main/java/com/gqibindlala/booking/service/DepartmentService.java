@@ -22,7 +22,7 @@ public class DepartmentService {
 
     @Transactional(readOnly = true)
     public List<Department> activeDepartments() {
-        return departmentRepository.findByActiveTrueOrderByNameAsc();
+        return departmentRepository.findByActiveTrueAndCatalogVisibleTrueOrderByNameAsc();
     }
 
     @Transactional(readOnly = true)
@@ -44,6 +44,7 @@ public class DepartmentService {
         department.setName(request.name().trim());
         department.setSlug(slug);
         department.setLoginDomain(loginDomain);
+        department.setCatalogVisible(!slug.equals("finance"));
         return departmentRepository.save(department);
     }
 

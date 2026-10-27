@@ -9,11 +9,13 @@ public record BookingItemResponse(Long id, Long equipmentId, String equipmentNam
                                   String departmentName,
                                   Integer quantity, LocalDate startDate, LocalDate endDate,
                                   BigDecimal unitPrice, BigDecimal lineTotal,
-                                  FulfillmentStatus fulfillmentStatus) {
+                                  FulfillmentStatus fulfillmentStatus, java.time.Instant quotationIssuedAt,
+                                  String quotationIssuedBy) {
     public static BookingItemResponse from(BookingItem item) {
         return new BookingItemResponse(item.getId(), item.getEquipment().getId(), item.getEquipment().getName(),
             item.getEquipment().getDepartment().getId(), item.getEquipment().getDepartment().getName(),
             item.getQuantity(), item.getStartDate(), item.getEndDate(),
-            item.getUnitPrice(), item.getLineTotal(), item.getFulfillmentStatus());
+            item.getUnitPrice(), item.getLineTotal(), item.getFulfillmentStatus(), item.getQuotationIssuedAt(),
+            item.getQuotationIssuedBy() == null ? null : item.getQuotationIssuedBy().getFullName());
     }
 }

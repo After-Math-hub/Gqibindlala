@@ -45,6 +45,13 @@ public class BookingItem {
     @Column(name = "fulfillment_status", nullable = false)
     private FulfillmentStatus fulfillmentStatus = FulfillmentStatus.NOT_STARTED;
 
+    @Column(name = "quotation_issued_at")
+    private java.time.Instant quotationIssuedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "quotation_issued_by_id")
+    private AppUser quotationIssuedBy;
+
     // --- getters / setters ---
 
     public Long getId() { return id; }
@@ -76,4 +83,8 @@ public class BookingItem {
 
     public FulfillmentStatus getFulfillmentStatus() { return fulfillmentStatus; }
     public void setFulfillmentStatus(FulfillmentStatus fulfillmentStatus) { this.fulfillmentStatus = fulfillmentStatus; }
+    public java.time.Instant getQuotationIssuedAt() { return quotationIssuedAt; }
+    public void setQuotationIssuedAt(java.time.Instant quotationIssuedAt) { this.quotationIssuedAt = quotationIssuedAt; }
+    public AppUser getQuotationIssuedBy() { return quotationIssuedBy; }
+    public void setQuotationIssuedBy(AppUser quotationIssuedBy) { this.quotationIssuedBy = quotationIssuedBy; }
 }

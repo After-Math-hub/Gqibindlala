@@ -9,13 +9,14 @@ import org.springframework.data.repository.query.Param;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.Collection;
 
 public interface BookingItemRepository extends JpaRepository<BookingItem, Long> {
 
     @Override
     @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {
         "bookingRequest", "bookingRequest.items", "bookingRequest.items.equipment",
-        "bookingRequest.items.equipment.department"
+        "bookingRequest.items.equipment.department", "quotationIssuedBy"
     })
     Optional<BookingItem> findById(Long id);
 
@@ -46,12 +47,13 @@ public interface BookingItemRepository extends JpaRepository<BookingItem, Long> 
         LEFT JOIN FETCH booking.items allItems
         LEFT JOIN FETCH allItems.equipment equipment
         LEFT JOIN FETCH equipment.department
+        LEFT JOIN FETCH allItems.quotationIssuedBy
         WHERE bi.equipment.department.id = :departmentId
-        AND booking.status = :status
+        AND booking.status IN :statuses
         ORDER BY booking.createdAt DESC
         """)
     List<com.gqibindlala.booking.model.BookingRequest> findDepartmentBookings(
         @Param("departmentId") Long departmentId,
-        @Param("status") BookingStatus status
+        @Param("statuses") Collection<BookingStatus> statuses
     );
 }

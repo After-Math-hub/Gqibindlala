@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface DepartmentRepository extends JpaRepository<Department, Long> {
-    List<Department> findByActiveTrueOrderByNameAsc();
+    List<Department> findByActiveTrueAndCatalogVisibleTrueOrderByNameAsc();
     boolean existsBySlug(String slug);
     boolean existsByLoginDomain(String loginDomain);
     Optional<Department> findBySlug(String slug);

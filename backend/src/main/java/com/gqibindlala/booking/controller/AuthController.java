@@ -47,6 +47,6 @@ public class AuthController {
     public UserResponse me(@AuthenticationPrincipal AuthPrincipal principal) {
         return new UserResponse(principal.id(), principal.fullName(), principal.loginIdentifier(),
             principal.personalEmail(), principal.phone(), principal.role(), principal.departmentId(),
-            principal.departmentName());
+            principal.departmentName(), true);
     }
 }

@@ -1,6 +1,8 @@
 package com.gqibindlala.booking.security;
 
 import com.gqibindlala.booking.model.AppRole;
+import com.gqibindlala.booking.model.AppUser;
+import com.gqibindlala.booking.repository.AppUserRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
@@ -16,9 +18,11 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
+    private final AppUserRepository userRepository;
 
-    public JwtAuthenticationFilter(JwtService jwtService) {
+    public JwtAuthenticationFilter(JwtService jwtService, AppUserRepository userRepository) {
         this.jwtService = jwtService;
+        this.userRepository = userRepository;
     }
 
     @Override
@@ -29,19 +33,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 && SecurityContextHolder.getContext().getAuthentication() == null) {
             try {
                 Claims claims = jwtService.parse(header.substring(7));
-                AuthPrincipal principal = new AuthPrincipal(
-                    claims.get("userId", Long.class),
-                    claims.getSubject(),
-                    claims.get("personalEmail", String.class),
-                    claims.get("fullName", String.class),
-                    claims.get("phone", String.class),
-                    AppRole.valueOf(claims.get("role", String.class)),
-                    claims.get("departmentId", Long.class),
-                    claims.get("departmentName", String.class)
-                );
-                var authentication = new UsernamePasswordAuthenticationToken(
-                    principal, null, principal.getAuthorities());
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+                AppUser user = userRepository.findByLoginIdentifier(claims.getSubject()).orElse(null);
+                if (user != null && user.isActive()
+                        && user.getId().equals(claims.get("userId", Long.class))
+                        && (user.getDepartment() == null || user.getDepartment().isActive())) {
+                    AuthPrincipal principal = new AuthPrincipal(user.getId(), user.getLoginIdentifier(),
+                        user.getPersonalEmail(), user.getFullName(), user.getPhone(), user.getRole(),
+                        user.getDepartment() == null ? null : user.getDepartment().getId(),
+                        user.getDepartment() == null ? null : user.getDepartment().getName());
+                    var authentication = new UsernamePasswordAuthenticationToken(
+                        principal, null, principal.getAuthorities());
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                }
             } catch (JwtException | IllegalArgumentException ignored) {
                 SecurityContextHolder.clearContext();
             }

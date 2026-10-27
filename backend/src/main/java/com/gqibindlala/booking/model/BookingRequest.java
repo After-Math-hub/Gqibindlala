@@ -35,6 +35,10 @@ public class BookingRequest {
     @Column(name = "payment_status", nullable = false)
     private PaymentStatus paymentStatus = PaymentStatus.UNPAID;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "finance_request_status", nullable = false)
+    private FinanceRequestStatus financeRequestStatus = FinanceRequestStatus.NOT_REQUESTED;
+
     @Column(name = "payment_reference")
     private String paymentReference;
 
@@ -73,6 +77,9 @@ public class BookingRequest {
 
     public PaymentStatus getPaymentStatus() { return paymentStatus; }
     public void setPaymentStatus(PaymentStatus paymentStatus) { this.paymentStatus = paymentStatus; }
+
+    public FinanceRequestStatus getFinanceRequestStatus() { return financeRequestStatus; }
+    public void setFinanceRequestStatus(FinanceRequestStatus financeRequestStatus) { this.financeRequestStatus = financeRequestStatus; }
 
     public String getPaymentReference() { return paymentReference; }
     public void setPaymentReference(String paymentReference) { this.paymentReference = paymentReference; }

@@ -28,6 +28,7 @@ export default function BookingPage() {
   const [checkingId, setCheckingId] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [paymentOption, setPaymentOption] = useState<"FULL_PAYMENT" | "REQUEST_FINANCE">("FULL_PAYMENT");
   const today = useMemo(todayAsISODate, []);
 
   useEffect(() => {
@@ -97,7 +98,7 @@ export default function BookingPage() {
     setSubmitError("");
     setSubmitting(true);
     try {
-      await submitBooking(selectedItems);
+      await submitBooking(selectedItems, paymentOption);
       setSubmitted(true);
     } catch {
       setSubmitError("Your enquiry could not be sent. Please check the details and try again.");
@@ -112,7 +113,7 @@ export default function BookingPage() {
         <span className="success-mark" aria-hidden="true">✓</span>
         <p className="eyebrow"><span /> ENQUIRY RECEIVED</p>
         <h1>Thank you, {user?.fullName.split(" ")[0]}.</h1>
-        <p>Your order is with our team. It will be reserved once payment has been reviewed and approved.</p>
+        <p>{paymentOption === "REQUEST_FINANCE" ? "Your request is with the Finance team. They will discuss available options with you in your order messages." : "Your order is with our team. It will be reserved once payment has been reviewed and approved."}</p>
         <Link to="/" className="button button-gold">Back to the collection <span aria-hidden="true">↗</span></Link>
       </section>
     );
@@ -211,6 +212,11 @@ export default function BookingPage() {
             <small>Final availability and pricing will be confirmed by our team.</small>
           </div>
           <div className="submit-block">
+            <fieldset className="payment-choice">
+              <legend>How would you like to proceed?</legend>
+              <label><input type="radio" name="payment-option" value="FULL_PAYMENT" checked={paymentOption === "FULL_PAYMENT"} onChange={() => setPaymentOption("FULL_PAYMENT")} /><span><strong>Pay in full</strong><small>Use the standard payment-reference process.</small></span></label>
+              <label><input type="radio" name="payment-option" value="REQUEST_FINANCE" checked={paymentOption === "REQUEST_FINANCE"} onChange={() => setPaymentOption("REQUEST_FINANCE")} /><span><strong>Discuss a finance option</strong><small>Send a request to Finance. This is not an automatic loan or approval.</small></span></label>
+            </fieldset>
             {submitError && <p className="form-alert" role="alert">{submitError}</p>}
             <button className="button button-gold submit-button" type="submit" disabled={selectedItems.length === 0 || submitting}>
               {submitting ? "Placing your order…" : "Place order"} <span aria-hidden="true">↗</span>

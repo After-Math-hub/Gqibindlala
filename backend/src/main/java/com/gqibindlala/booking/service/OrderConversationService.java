@@ -73,8 +73,7 @@ public class OrderConversationService {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found");
         }
         if (principal.role() == AppRole.DEPARTMENT && booking.getItems().stream().noneMatch(item ->
-                item.getStatus() == BookingStatus.CONFIRMED
-                    && item.getEquipment().getDepartment().getId().equals(principal.departmentId()))) {
+            item.getEquipment().getDepartment().getId().equals(principal.departmentId()))) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found");
         }
         return booking;

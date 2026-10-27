@@ -62,7 +62,7 @@ public class AuthService {
     @Transactional(readOnly = true)
     public AuthResponse login(LoginRequest request) {
         AppUser user = userRepository.findByLoginIdentifier(normalizeIdentifier(request.loginIdentifier()))
-            .filter(candidate -> passwordEncoder.matches(request.password(), candidate.getPasswordHash()))
+            .filter(candidate -> candidate.isActive() && passwordEncoder.matches(request.password(), candidate.getPasswordHash()))
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid email or password"));
         if (user.getRole() == AppRole.CUSTOMER && !user.isEmailVerified()) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Verify your email before signing in");
@@ -95,6 +95,23 @@ public class AuthService {
         user.setPasswordHash(passwordEncoder.encode(request.temporaryPassword()));
         user.setRole(request.role());
         user.setDepartment(department);
+        return UserResponse.from(userRepository.save(user));
+    }
+
+    @Transactional(readOnly = true)
+    public java.util.List<UserResponse> staffUsers() {
+        return userRepository.findByRoleInOrderByFullNameAsc(java.util.List.of(AppRole.DEPARTMENT, AppRole.PAYMENTS))
+            .stream().map(UserResponse::from).toList();
+    }
+
+    @Transactional
+    public UserResponse setStaffActive(Long userId, boolean active) {
+        AppUser user = userRepository.findById(userId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Staff account not found"));
+        if (user.getRole() != AppRole.DEPARTMENT && user.getRole() != AppRole.PAYMENTS) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only staff accounts can be managed here");
+        }
+        user.setActive(active);
         return UserResponse.from(userRepository.save(user));
     }
 

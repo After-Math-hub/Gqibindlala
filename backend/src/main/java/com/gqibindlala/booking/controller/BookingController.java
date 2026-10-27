@@ -4,6 +4,7 @@ import com.gqibindlala.booking.dto.CreateBookingRequest;
 import com.gqibindlala.booking.dto.BookingResponse;
 import com.gqibindlala.booking.dto.FulfillmentUpdateRequest;
 import com.gqibindlala.booking.dto.PaymentReferenceRequest;
+import com.gqibindlala.booking.dto.FinanceRequestStatusUpdate;
 import com.gqibindlala.booking.model.BookingItem;
 import com.gqibindlala.booking.model.BookingRequest;
 import com.gqibindlala.booking.security.AuthPrincipal;
@@ -46,6 +47,18 @@ public class BookingController {
         return BookingResponse.from(bookingService.submitPaymentReference(id, request.reference(), principal));
     }
 
+    @GetMapping("/finance-requests")
+    public List<BookingResponse> financeRequests() {
+        return bookingService.financeRequestQueue().stream().map(BookingResponse::from).toList();
+    }
+
+    @PatchMapping("/{id}/finance-request")
+    public BookingResponse updateFinanceRequest(@PathVariable Long id,
+            @Valid @RequestBody FinanceRequestStatusUpdate request,
+            @AuthenticationPrincipal AuthPrincipal principal) {
+        return BookingResponse.from(bookingService.updateFinanceRequestStatus(id, request.status(), principal));
+    }
+
     @GetMapping("/payment-review")
     public List<BookingResponse> paymentReviewQueue() {
         return bookingService.paymentReviewQueue().stream().map(BookingResponse::from).toList();
@@ -76,6 +89,13 @@ public class BookingController {
             @AuthenticationPrincipal AuthPrincipal principal) {
         BookingItem item = bookingService.updateFulfillment(itemId, request.status(), principal);
         return BookingResponse.forDepartment(item.getBookingRequest(), item.getEquipment().getDepartment().getId());
+    }
+
+    @PostMapping("/items/{itemId}/quotation")
+    public BookingResponse issueQuotation(@PathVariable Long itemId,
+            @AuthenticationPrincipal AuthPrincipal principal) {
+        BookingItem item = bookingService.issueQuotation(itemId, principal);
+        return BookingResponse.from(item.getBookingRequest());
     }
 
     @GetMapping

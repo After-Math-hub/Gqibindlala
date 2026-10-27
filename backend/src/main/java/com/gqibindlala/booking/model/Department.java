@@ -26,6 +26,9 @@ public class Department {
     @Column(nullable = false)
     private boolean active = true;
 
+    @Column(name = "catalog_visible", nullable = false)
+    private boolean catalogVisible = true;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public String getName() { return name; }
@@ -36,4 +39,6 @@ public class Department {
     public void setLoginDomain(String loginDomain) { this.loginDomain = loginDomain; }
     public boolean isActive() { return active; }
     public void setActive(boolean active) { this.active = active; }
+    public boolean isCatalogVisible() { return catalogVisible; }
+    public void setCatalogVisible(boolean catalogVisible) { this.catalogVisible = catalogVisible; }
 }
