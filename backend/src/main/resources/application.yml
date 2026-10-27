@@ -27,7 +27,17 @@ jwt:
   expiration-ms: 86400000  # 24h
 
 app:
+  public-url: ${PUBLIC_APP_URL:http://localhost:5173}
   bootstrap-admin:
-    email: ${ADMIN_EMAIL:}
+    email: ${ADMIN_EMAIL:admin@gqibindlala.co.za}
     password: ${ADMIN_PASSWORD:}
     full-name: ${ADMIN_FULL_NAME:Initial administrator}
+
+resend:
+  api-key: ${RESEND_API_KEY:}
+  from: ${RESEND_FROM_EMAIL:onboarding@resend.dev}
+
+cloudinary:
+  cloud-name: ${CLOUDINARY_CLOUD_NAME:}
+  api-key: ${CLOUDINARY_API_KEY:}
+  api-secret: ${CLOUDINARY_API_SECRET:}

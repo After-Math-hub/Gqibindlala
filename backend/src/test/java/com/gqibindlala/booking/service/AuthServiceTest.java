@@ -24,6 +24,8 @@ import org.springframework.web.server.ResponseStatusException;
 class AuthServiceTest {
     private AppUserRepository userRepository;
     private DepartmentRepository departmentRepository;
+    private EmailVerificationService emailVerificationService;
+    private AppUser pendingVerificationUser;
     private BCryptPasswordEncoder passwordEncoder;
     private AuthService authService;
 
@@ -31,8 +33,17 @@ class AuthServiceTest {
     void setUp() {
         userRepository = org.mockito.Mockito.mock(AppUserRepository.class);
         departmentRepository = org.mockito.Mockito.mock(DepartmentRepository.class);
+        emailVerificationService = new EmailVerificationService() {
+            @Override
+            public void sendVerification(AppUser user) {
+                pendingVerificationUser = user;
+            }
+
+            @Override
+            public void verify(String token) {}
+        };
         passwordEncoder = new BCryptPasswordEncoder();
-        authService = new AuthService(userRepository, departmentRepository, passwordEncoder,
+        authService = new AuthService(userRepository, departmentRepository, emailVerificationService, passwordEncoder,
             new JwtService("a-secret-key-with-at-least-thirty-two-bytes", 86_400_000));
     }
 
@@ -45,16 +56,17 @@ class AuthServiceTest {
             return saved;
         });
 
-        var response = authService.register(new RegisterRequest(
+        authService.register(new RegisterRequest(
             "Taylor Customer", " CUSTOMER@example.com ", "071 123 4567", "a-long-passphrase"));
 
-        assertEquals(AppRole.CUSTOMER, response.user().role());
-        assertEquals("customer@example.com", response.user().loginIdentifier());
-        assertNotNull(response.token());
         verify(userRepository).save(org.mockito.ArgumentMatchers.argThat(user ->
             user.getRole() == AppRole.CUSTOMER
+                && !user.isEmailVerified()
+                && "customer@example.com".equals(user.getLoginIdentifier())
                 && !user.getPasswordHash().equals("a-long-passphrase")
                 && passwordEncoder.matches("a-long-passphrase", user.getPasswordHash())));
+        assertNotNull(pendingVerificationUser);
+        assertEquals("customer@example.com", pendingVerificationUser.getPersonalEmail());
     }
 
     @Test

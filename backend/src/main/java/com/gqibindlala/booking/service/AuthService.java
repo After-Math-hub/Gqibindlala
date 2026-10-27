@@ -22,19 +22,22 @@ import java.util.Locale;
 public class AuthService {
     private final AppUserRepository userRepository;
     private final DepartmentRepository departmentRepository;
+    private final EmailVerificationService emailVerificationService;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
 
     public AuthService(AppUserRepository userRepository, DepartmentRepository departmentRepository,
+                       EmailVerificationService emailVerificationService,
                        PasswordEncoder passwordEncoder, JwtService jwtService) {
         this.userRepository = userRepository;
         this.departmentRepository = departmentRepository;
+        this.emailVerificationService = emailVerificationService;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
     }
 
     @Transactional
-    public AuthResponse register(RegisterRequest request) {
+    public void register(RegisterRequest request) {
         String email = normalizeIdentifier(request.email());
         if (userRepository.existsByLoginIdentifier(email)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "An account with this email already exists");
@@ -46,7 +49,14 @@ public class AuthService {
         user.setPhone(request.phone().trim());
         user.setPasswordHash(passwordEncoder.encode(request.password()));
         user.setRole(AppRole.CUSTOMER);
-        return createResponse(userRepository.save(user));
+        user.setEmailVerified(false);
+        AppUser savedUser = userRepository.save(user);
+        emailVerificationService.sendVerification(savedUser);
+    }
+
+    @Transactional
+    public void verifyEmail(String token) {
+        emailVerificationService.verify(token);
     }
 
     @Transactional(readOnly = true)
@@ -54,6 +64,9 @@ public class AuthService {
         AppUser user = userRepository.findByLoginIdentifier(normalizeIdentifier(request.loginIdentifier()))
             .filter(candidate -> passwordEncoder.matches(request.password(), candidate.getPasswordHash()))
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid email or password"));
+        if (user.getRole() == AppRole.CUSTOMER && !user.isEmailVerified()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Verify your email before signing in");
+        }
         return createResponse(user);
     }
 

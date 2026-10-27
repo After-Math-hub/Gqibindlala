@@ -41,7 +41,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }
 
   async function register(details: { fullName: string; email: string; phone: string; password: string }) {
-    setUser(saveSession(await registerAccount(details)));
+    await registerAccount(details);
   }
 
   function logout() {

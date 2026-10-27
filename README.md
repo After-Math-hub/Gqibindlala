@@ -24,9 +24,15 @@ export DB_PASSWORD='your-database-password'
 export JWT_SECRET='at-least-32-random-bytes-for-local-development'
 export ADMIN_EMAIL=admin@gqibindlala.co.za
 export ADMIN_PASSWORD='a-unique-password-of-at-least-10-characters'
+export RESEND_API_KEY='set-this-in-your-shell-or-secret-manager'
+export RESEND_FROM_EMAIL='onboarding@resend.dev'
+export PUBLIC_APP_URL='http://localhost:5173'
+export CLOUDINARY_CLOUD_NAME='your-cloud-name'
+export CLOUDINARY_API_KEY='your-api-key'
+export CLOUDINARY_API_SECRET='set-this-in-your-shell-or-secret-manager'
 ```
 
-The first backend startup creates the initial administrator if `ADMIN_EMAIL` and `ADMIN_PASSWORD` are set and that login identifier does not already exist. Set the password as an environment secret; do not commit it. Once signed in at `/account`, create departments, inventory, and staff accounts. Customer registration is public and can only create customer-role accounts. Staff login IDs use the domain configured for their department and do not deliver email.
+The first backend startup creates the initial administrator if `ADMIN_EMAIL` and `ADMIN_PASSWORD` are set and that login identifier does not already exist. Set passwords and API secrets as environment secrets; do not commit them. Once signed in at `/account`, create departments, inventory, and staff accounts. Customer registration is public, sends a verification link through Resend, and can only create customer-role accounts. Staff login IDs use the domain configured for their department and do not deliver email. Site staff/customer communication happens in each order's message thread.
 
 **Backend** (Java 21 and Maven):
 ```bash
@@ -47,13 +53,14 @@ Open `http://localhost:5173`. Vite proxies `/api` requests to `http://localhost:
 
 There is not yet a payment gateway integration. The current workflow accepts a payment reference and requires a staff member to verify it against the actual payment channel before approval. A live redirect/checkout requires selecting a provider and configuring its merchant credentials and callback/webhook URLs. Do not treat a customer-entered reference as proof of payment.
 
-## Recommended API providers
+## Provider integrations
 
-- **Email verification for customer accounts:** [Resend API](https://resend.com/docs) is the recommended first option. [Brevo's API](https://developers.brevo.com/) is an alternative. Neither is currently wired into account registration; customer verification needs a sender domain and API key. Staff login IDs do not receive email.
+- **Customer email verification:** [Resend API](https://resend.com/docs) sends single-use verification links. Configure `RESEND_API_KEY` and `RESEND_FROM_EMAIL`; the `onboarding@resend.dev` sender is for testing and production requires an authorized sender domain. Staff accounts do not send email.
+- **Equipment images:** [Cloudinary Upload API](https://cloudinary.com/documentation/image_upload_api_reference) receives admin uploads through a short-lived signed request. Configure `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET`. The secret remains backend-only.
 - **South African checkout:** evaluate [PayFast](https://developers.payfast.co.za/) first; compare its current merchant and transaction fees with [Yoco](https://developer.yoco.com/). The app currently supports manual payment reference review only. Gateway payment must be confirmed by a verified webhook.
-- **Equipment images:** [Cloudinary](https://cloudinary.com/documentation) is the recommended image API. Admin inventory currently requires a hosted image URL and previews it; direct authenticated uploads need Cloudinary account credentials and a signed-upload endpoint.
+- **Authentication and data:** authentication is implemented in the existing Spring Security/JWT backend; PostgreSQL and Flyway persist accounts, departments, inventory, orders, and in-site conversations.
 - **Authentication and data:** authentication is implemented in the existing Spring Security/JWT backend; PostgreSQL and Flyway persist accounts, departments, inventory, orders, and in-site conversations.
 
 ## Database
 
-Flyway owns schema changes. `V1__init_schema.sql` creates the original catalogue and booking tables; `V2__accounts_and_order_workflow.sql` adds accounts, payment review, and fulfillment state; `V3__dynamic_departments.sql` converts fixed categories to departments; and `V4__order_conversations.sql` adds in-site order messages and optional staff personal email.
+Flyway owns schema changes. `V1__init_schema.sql` creates the original catalogue and booking tables; `V2__accounts_and_order_workflow.sql` adds accounts, payment review, and fulfillment state; `V3__dynamic_departments.sql` converts fixed categories to departments; `V4__order_conversations.sql` adds in-site order messages and optional staff personal email; and `V5__customer_email_verification.sql` adds customer email verification tokens.

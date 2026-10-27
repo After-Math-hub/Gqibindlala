@@ -53,14 +53,18 @@ function AuthPanel({ redirectTo }: { redirectTo: string }) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [verificationSentTo, setVerificationSentTo] = useState("");
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
     setSubmitting(true);
     try {
-      if (registering) await register({ fullName, email, phone, password });
-      else await login(email, password);
+      if (registering) {
+        await register({ fullName, email, phone, password });
+        setVerificationSentTo(email);
+        return;
+      } else await login(email, password);
       navigate(redirectTo, { replace: true });
     } catch (requestError) {
       const message = (requestError as { response?: { data?: { message?: string } } }).response?.data?.message;
@@ -79,6 +83,14 @@ function AuthPanel({ redirectTo }: { redirectTo: string }) {
         <div className="auth-aside-mark" aria-hidden="true">G</div>
       </div>
       <div className="auth-form-side">
+        {verificationSentTo ? (
+          <div className="verification-sent">
+            <p className="eyebrow"><span /> CHECK YOUR INBOX</p>
+            <h2>One last step.</h2>
+            <p>We sent a verification link to <strong>{verificationSentTo}</strong>. Verify your address, then sign in to place orders.</p>
+            <button type="button" className="text-button" onClick={() => { setVerificationSentTo(""); setRegistering(false); }}>Back to sign in</button>
+          </div>
+        ) : <>
         <div className="auth-tabs" role="tablist" aria-label="Account access">
           <button type="button" className={!registering ? "auth-tab selected" : "auth-tab"} onClick={() => { setRegistering(false); setError(""); }}>Sign in</button>
           <button type="button" className={registering ? "auth-tab selected" : "auth-tab"} onClick={() => { setRegistering(true); setError(""); }}>Create account</button>
@@ -89,13 +101,14 @@ function AuthPanel({ redirectTo }: { redirectTo: string }) {
         </div>
         <form className="account-form" onSubmit={handleSubmit}>
           {registering && <label className="field-label">Full name<input required autoComplete="name" value={fullName} onChange={(event) => setFullName(event.target.value)} /></label>}
-          <label className="field-label">{registering ? "Email address" : "Email or staff login ID"}<input required type="email" autoComplete="username" value={email} onChange={(event) => setEmail(event.target.value)} /></label>
+          <label className="field-label">Email<input required type="email" autoComplete="username" value={email} onChange={(event) => setEmail(event.target.value)} /></label>
           {registering && <label className="field-label">Phone number<input required autoComplete="tel" value={phone} onChange={(event) => setPhone(event.target.value)} /></label>}
           <label className="field-label">Password<input required type="password" autoComplete={registering ? "new-password" : "current-password"} minLength={registering ? 10 : undefined} value={password} onChange={(event) => setPassword(event.target.value)} /><span className="field-note">{registering ? "Use at least 10 characters." : ""}</span></label>
           {error && <p className="form-alert" role="alert">{error}</p>}
           <button className="button button-gold auth-submit" type="submit" disabled={submitting}>{submitting ? "Please wait…" : registering ? "Create your account" : "Sign in"}<span aria-hidden="true">↗</span></button>
         </form>
         <p className="auth-security-note">Your account details are protected and used only to manage your orders.</p>
+        </>}
       </div>
     </section>
   );

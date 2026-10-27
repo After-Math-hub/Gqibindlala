@@ -20,6 +20,9 @@ public class AppUser {
     @Column(name = "personal_email")
     private String personalEmail;
 
+    @Column(name = "email_verified", nullable = false)
+    private boolean emailVerified = true;
+
     @Column(nullable = false)
     private String phone;
 
@@ -45,6 +48,8 @@ public class AppUser {
     public void setLoginIdentifier(String loginIdentifier) { this.loginIdentifier = loginIdentifier; }
     public String getPersonalEmail() { return personalEmail; }
     public void setPersonalEmail(String personalEmail) { this.personalEmail = personalEmail; }
+    public boolean isEmailVerified() { return emailVerified; }
+    public void setEmailVerified(boolean emailVerified) { this.emailVerified = emailVerified; }
     public String getPhone() { return phone; }
     public void setPhone(String phone) { this.phone = phone; }
     public String getPasswordHash() { return passwordHash; }

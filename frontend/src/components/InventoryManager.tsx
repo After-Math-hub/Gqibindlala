@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from "react";
-import { createEquipment, fetchAdminEquipment, fetchDepartments } from "../api/client";
+import { createEquipment, fetchAdminEquipment, fetchDepartments, uploadEquipmentImage } from "../api/client";
 import { Department, Equipment } from "../types/equipment";
 
 export default function InventoryManager() {
@@ -14,6 +14,28 @@ export default function InventoryManager() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+
+  async function handleImageSelect(file?: File) {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setError("Choose an image file.");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setError("Choose an image smaller than 10 MB.");
+      return;
+    }
+    setUploadingImage(true);
+    setError("");
+    try {
+      setImageUrl(await uploadEquipmentImage(file));
+    } catch {
+      setError("Photo upload failed. Check Cloudinary configuration and try again.");
+    } finally {
+      setUploadingImage(false);
+    }
+  }
 
   async function load() {
     try {
@@ -67,10 +89,11 @@ export default function InventoryManager() {
         <label className="field-label">Department<select required value={departmentId} onChange={(event) => setDepartmentId(event.target.value)}>{departments.map((department) => <option value={department.id} key={department.id}>{department.name}</option>)}</select></label>
         <label className="field-label">Total quantity<input required type="number" min="0" step="1" value={totalQuantity} onChange={(event) => setTotalQuantity(event.target.value)} /></label>
         <label className="field-label">Price per unit / day (R)<input required type="number" min="0" step="0.01" value={pricePerUnitPerDay} onChange={(event) => setPricePerUnitPerDay(event.target.value)} /></label>
-        <label className="field-label inventory-image-field">Item photo URL<input required type="url" maxLength={500} value={imageUrl} onChange={(event) => setImageUrl(event.target.value)} placeholder="https://..." /><span className="field-note">Paste a hosted photo URL. Cloudinary upload can be connected when its account is configured.</span></label>
+        <label className="field-label inventory-image-field">Item photo<input type="file" accept="image/*" onChange={(event) => void handleImageSelect(event.target.files?.[0])} /><span className="field-note">{uploadingImage ? "Uploading photo…" : "Photos are stored in the company Cloudinary account. Maximum 10 MB."}</span></label>
+        <label className="field-label inventory-image-field">Hosted photo URL<input required type="url" maxLength={500} value={imageUrl} onChange={(event) => setImageUrl(event.target.value)} placeholder="Uploaded photo URL" /></label>
         <label className="field-label inventory-description-field">Description<textarea maxLength={1000} value={description} onChange={(event) => setDescription(event.target.value)} rows={2} /></label>
         {imageUrl && <img className="inventory-preview" src={imageUrl} alt="Equipment preview" />}
-        <button className="button button-gold" type="submit" disabled={saving || !departmentId}>{saving ? "Adding…" : "Add equipment"}</button>
+        <button className="button button-gold" type="submit" disabled={saving || uploadingImage || !departmentId || !imageUrl}>{saving ? "Adding…" : "Add equipment"}</button>
       </form>
       {message && <p className="success-message" role="status">{message}</p>}
       {error && <p className="form-alert" role="alert">{error}</p>}

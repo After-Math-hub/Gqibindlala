@@ -18,8 +18,13 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-export async function registerAccount(details: { fullName: string; email: string; phone: string; password: string }) {
-  const { data } = await api.post<AuthResponse>("/auth/register", details);
+export async function registerAccount(details: { fullName: string; email: string; phone: string; password: string }): Promise<{ message: string }> {
+  const { data } = await api.post<{ message: string }>("/auth/register", details);
+  return data;
+}
+
+export async function verifyEmail(token: string): Promise<{ message: string }> {
+  const { data } = await api.put<{ message: string }>("/auth/verify-email", { token });
   return data;
 }
 
@@ -53,6 +58,27 @@ export async function createEquipment(details: {
 }): Promise<Equipment> {
   const { data } = await api.post<Equipment>("/equipment", details);
   return data;
+}
+
+export async function uploadEquipmentImage(file: File): Promise<string> {
+  const { data: signature } = await api.post<{
+    cloudName: string;
+    apiKey: string;
+    timestamp: number;
+    folder: string;
+    signature: string;
+  }>("/uploads/cloudinary-signature");
+  const payload = new FormData();
+  payload.append("file", file);
+  payload.append("api_key", signature.apiKey);
+  payload.append("timestamp", String(signature.timestamp));
+  payload.append("folder", signature.folder);
+  payload.append("signature", signature.signature);
+  const { data: uploaded } = await axios.post<{ secure_url: string }>(
+    `https://api.cloudinary.com/v1_1/${signature.cloudName}/image/upload`,
+    payload
+  );
+  return uploaded.secure_url;
 }
 
 export async function fetchDepartments(admin = false): Promise<Department[]> {
