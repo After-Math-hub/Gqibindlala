@@ -8,8 +8,16 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 public interface BookingItemRepository extends JpaRepository<BookingItem, Long> {
+
+    @Override
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {
+        "bookingRequest", "bookingRequest.items", "bookingRequest.items.equipment",
+        "bookingRequest.items.equipment.department"
+    })
+    Optional<BookingItem> findById(Long id);
 
     // Sum of quantity already committed to a piece of equipment for dates
     // that overlap the requested range, counting only CONFIRMED items.
@@ -30,4 +38,20 @@ public interface BookingItemRepository extends JpaRepository<BookingItem, Long> 
     );
 
     List<BookingItem> findByEquipmentIdAndStatus(Long equipmentId, BookingStatus status);
+
+    @Query("""
+        SELECT DISTINCT booking
+        FROM BookingItem bi
+        JOIN bi.bookingRequest booking
+        LEFT JOIN FETCH booking.items allItems
+        LEFT JOIN FETCH allItems.equipment equipment
+        LEFT JOIN FETCH equipment.department
+        WHERE bi.equipment.department.id = :departmentId
+        AND booking.status = :status
+        ORDER BY booking.createdAt DESC
+        """)
+    List<com.gqibindlala.booking.model.BookingRequest> findDepartmentBookings(
+        @Param("departmentId") Long departmentId,
+        @Param("status") BookingStatus status
+    );
 }

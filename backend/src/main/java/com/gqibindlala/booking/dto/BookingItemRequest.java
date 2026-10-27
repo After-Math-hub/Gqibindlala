@@ -1,6 +1,6 @@
 package com.gqibindlala.booking.dto;
 
-import jakarta.validation.constraints.Future;
+import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 
@@ -19,7 +19,7 @@ public class BookingItemRequest {
     private LocalDate startDate;
 
     @NotNull
-    @Future
+    @FutureOrPresent
     private LocalDate endDate;
 
     public Long getEquipmentId() { return equipmentId; }

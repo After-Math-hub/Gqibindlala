@@ -14,9 +14,9 @@ public class Equipment {
     @Column(nullable = false)
     private String name;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private EquipmentCategory category;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "department_id", nullable = false)
+    private Department department;
 
     @Column(length = 1000)
     private String description;
@@ -38,8 +38,8 @@ public class Equipment {
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
 
-    public EquipmentCategory getCategory() { return category; }
-    public void setCategory(EquipmentCategory category) { this.category = category; }
+    public Department getDepartment() { return department; }
+    public void setDepartment(Department department) { this.department = department; }
 
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }

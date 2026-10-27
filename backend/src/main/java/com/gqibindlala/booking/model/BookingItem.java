@@ -41,6 +41,10 @@ public class BookingItem {
     @Column(nullable = false)
     private BookingStatus status = BookingStatus.PENDING;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "fulfillment_status", nullable = false)
+    private FulfillmentStatus fulfillmentStatus = FulfillmentStatus.NOT_STARTED;
+
     // --- getters / setters ---
 
     public Long getId() { return id; }
@@ -69,4 +73,7 @@ public class BookingItem {
 
     public BookingStatus getStatus() { return status; }
     public void setStatus(BookingStatus status) { this.status = status; }
+
+    public FulfillmentStatus getFulfillmentStatus() { return fulfillmentStatus; }
+    public void setFulfillmentStatus(FulfillmentStatus fulfillmentStatus) { this.fulfillmentStatus = fulfillmentStatus; }
 }

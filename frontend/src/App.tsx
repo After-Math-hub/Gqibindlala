@@ -2,18 +2,22 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import HomePage from "./pages/HomePage";
 import BookingPage from "./pages/BookingPage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
+import SiteShell from "./components/SiteShell";
+import AccountPage from "./pages/AccountPage";
+import { AuthProvider } from "./components/AuthProvider";
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        {/* Public site */}
-        <Route path="/" element={<HomePage />} />
-        <Route path="/book" element={<BookingPage />} />
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<SiteShell><HomePage /></SiteShell>} />
+          <Route path="/book" element={<SiteShell><BookingPage /></SiteShell>} />
+          <Route path="/account" element={<SiteShell><AccountPage /></SiteShell>} />
 
-        {/* Admin dashboard */}
-        <Route path="/admin" element={<AdminDashboardPage />} />
-      </Routes>
-    </BrowserRouter>
+          <Route path="/admin" element={<SiteShell><AdminDashboardPage /></SiteShell>} />
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   );
 }

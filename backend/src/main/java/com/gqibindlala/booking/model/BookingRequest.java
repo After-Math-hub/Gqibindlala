@@ -20,12 +20,30 @@ public class BookingRequest {
     @Column(name = "customer_contact", nullable = false)
     private String customerContact;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "customer_id")
+    private AppUser customer;
+
     @Column(name = "event_date")
     private LocalDate eventDate;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private BookingStatus status = BookingStatus.PENDING;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_status", nullable = false)
+    private PaymentStatus paymentStatus = PaymentStatus.UNPAID;
+
+    @Column(name = "payment_reference")
+    private String paymentReference;
+
+    @Column(name = "payment_reviewed_at")
+    private Instant paymentReviewedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "payment_reviewed_by_id")
+    private AppUser paymentReviewedBy;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
@@ -44,11 +62,26 @@ public class BookingRequest {
     public String getCustomerContact() { return customerContact; }
     public void setCustomerContact(String customerContact) { this.customerContact = customerContact; }
 
+    public AppUser getCustomer() { return customer; }
+    public void setCustomer(AppUser customer) { this.customer = customer; }
+
     public LocalDate getEventDate() { return eventDate; }
     public void setEventDate(LocalDate eventDate) { this.eventDate = eventDate; }
 
     public BookingStatus getStatus() { return status; }
     public void setStatus(BookingStatus status) { this.status = status; }
+
+    public PaymentStatus getPaymentStatus() { return paymentStatus; }
+    public void setPaymentStatus(PaymentStatus paymentStatus) { this.paymentStatus = paymentStatus; }
+
+    public String getPaymentReference() { return paymentReference; }
+    public void setPaymentReference(String paymentReference) { this.paymentReference = paymentReference; }
+
+    public Instant getPaymentReviewedAt() { return paymentReviewedAt; }
+    public void setPaymentReviewedAt(Instant paymentReviewedAt) { this.paymentReviewedAt = paymentReviewedAt; }
+
+    public AppUser getPaymentReviewedBy() { return paymentReviewedBy; }
+    public void setPaymentReviewedBy(AppUser paymentReviewedBy) { this.paymentReviewedBy = paymentReviewedBy; }
 
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }

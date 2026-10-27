@@ -23,5 +23,11 @@ server:
   port: 8080
 
 jwt:
-  secret: ${JWT_SECRET:change-this-to-a-long-random-secret-in-production}
+  secret: ${JWT_SECRET:}
   expiration-ms: 86400000  # 24h
+
+app:
+  bootstrap-admin:
+    email: ${ADMIN_EMAIL:}
+    password: ${ADMIN_PASSWORD:}
+    full-name: ${ADMIN_FULL_NAME:Initial administrator}
