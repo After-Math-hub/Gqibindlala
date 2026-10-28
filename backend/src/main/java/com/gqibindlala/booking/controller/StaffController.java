@@ -1,6 +1,7 @@
 package com.gqibindlala.booking.controller;
 
 import com.gqibindlala.booking.dto.CreateStaffRequest;
+import com.gqibindlala.booking.dto.RegistrationResponse;
 import com.gqibindlala.booking.dto.UserResponse;
 import com.gqibindlala.booking.service.AuthService;
 import jakarta.validation.Valid;
@@ -35,5 +36,11 @@ public class StaffController {
     @PatchMapping("/{id}/active")
     public UserResponse setActive(@PathVariable Long id, @RequestParam boolean active) {
         return authService.setStaffActive(id, active);
+    }
+
+    @PostMapping("/{id}/activation")
+    public RegistrationResponse resendActivation(@PathVariable Long id) {
+        authService.resendStaffActivation(id);
+        return new RegistrationResponse("Activation email sent.");
     }
 }

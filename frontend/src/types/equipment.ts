@@ -41,6 +41,7 @@ export interface UserProfile {
   departmentId: number | null;
   departmentName: string | null;
   active: boolean;
+  staffActivated: boolean;
 }
 
 export interface AuthResponse {

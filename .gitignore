@@ -10,6 +10,7 @@ frontend/*.tsbuildinfo
 
 # Env / secrets
 .env
+.env.save
 ,env
 *.local
 

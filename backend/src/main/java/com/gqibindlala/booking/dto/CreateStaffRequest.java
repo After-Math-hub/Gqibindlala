@@ -8,9 +8,8 @@ import jakarta.validation.constraints.Size;
 
 public record CreateStaffRequest(
     @NotBlank @Size(max = 255) String fullName,
-    @Email @Size(max = 255) String personalEmail,
+    @NotBlank @Email @Size(max = 255) String personalEmail,
     @NotBlank @Size(max = 255) String phone,
-    @NotBlank @Size(min = 10, max = 72) String temporaryPassword,
     @NotNull AppRole role,
     Long departmentId
 ) {}

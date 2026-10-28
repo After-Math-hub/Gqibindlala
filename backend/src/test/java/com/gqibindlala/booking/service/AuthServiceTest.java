@@ -25,6 +25,7 @@ class AuthServiceTest {
     private AppUserRepository userRepository;
     private DepartmentRepository departmentRepository;
     private EmailVerificationService emailVerificationService;
+    private StaffActivation staffActivationService;
     private AppUser pendingVerificationUser;
     private BCryptPasswordEncoder passwordEncoder;
     private AuthService authService;
@@ -42,8 +43,16 @@ class AuthServiceTest {
             @Override
             public void verify(String token) {}
         };
+        staffActivationService = org.mockito.Mockito.mock(StaffActivation.class);
+        when(staffActivationService.createPendingAccount(any(AppUser.class))).thenAnswer(invocation -> {
+            AppUser user = invocation.getArgument(0);
+            user.setId(12L);
+            user.setActive(false);
+            user.setStaffActivated(false);
+            return user;
+        });
         passwordEncoder = new BCryptPasswordEncoder();
-        authService = new AuthService(userRepository, departmentRepository, emailVerificationService, passwordEncoder,
+        authService = new AuthService(userRepository, departmentRepository, emailVerificationService, staffActivationService, passwordEncoder,
             new JwtService("a-secret-key-with-at-least-thirty-two-bytes", 86_400_000));
     }
 
@@ -72,8 +81,7 @@ class AuthServiceTest {
     @Test
     void departmentStaffRequiresDepartmentAssignment() {
         assertThrows(ResponseStatusException.class, () -> authService.createStaff(new CreateStaffRequest(
-            "Chair desk", "chair@example.com", "0710000000", "another-long-password",
-            AppRole.DEPARTMENT, null)));
+            "Chair desk", "chair@example.com", "0710000000", AppRole.DEPARTMENT, null)));
     }
 
     @Test
@@ -83,12 +91,11 @@ class AuthServiceTest {
         chairs.setSlug("chair");
         when(departmentRepository.findById(5L)).thenReturn(java.util.Optional.of(chairs));
         assertThrows(ResponseStatusException.class, () -> authService.createStaff(new CreateStaffRequest(
-            "Payments desk", "payments@example.com", "0710000000", "another-long-password",
-            AppRole.PAYMENTS, 5L)));
+            "Payments desk", "payments@example.com", "0710000000", AppRole.PAYMENTS, 5L)));
     }
 
     @Test
-    void staffLoginUsesGeneratedDepartmentIdentifierWithoutRequiringMailbox() {
+    void staffLoginUsesGeneratedDepartmentIdentifierAndActivationEmail() {
         Department chairs = new Department();
         chairs.setId(7L);
         chairs.setName("Chairs");
@@ -96,20 +103,16 @@ class AuthServiceTest {
         chairs.setLoginDomain("chair-gqi.co.za");
         when(departmentRepository.findById(7L)).thenReturn(java.util.Optional.of(chairs));
         when(userRepository.existsByLoginIdentifier("jsmith@chair-gqi.co.za")).thenReturn(false);
-        when(userRepository.save(any(AppUser.class))).thenAnswer(invocation -> {
-            AppUser saved = invocation.getArgument(0);
-            saved.setId(12L);
-            return saved;
-        });
-
         var response = authService.createStaff(new CreateStaffRequest(
-            "Jamie Smith", null, "0710000000", "another-long-password", AppRole.DEPARTMENT, 7L));
+            "Jamie Smith", "jamie@example.com", "0710000000", AppRole.DEPARTMENT, 7L));
 
         assertEquals("jsmith@chair-gqi.co.za", response.loginIdentifier());
-        assertEquals(null, response.personalEmail());
-        verify(userRepository).save(org.mockito.ArgumentMatchers.argThat(user ->
+        assertEquals("jamie@example.com", response.personalEmail());
+        assertEquals(false, response.active());
+        assertEquals(false, response.staffActivated());
+        verify(staffActivationService).createPendingAccount(org.mockito.ArgumentMatchers.argThat(user ->
             user.getRole() == AppRole.DEPARTMENT
-                && user.getPersonalEmail() == null
+                && "jamie@example.com".equals(user.getPersonalEmail())
                 && user.getDepartment().getId().equals(7L)));
     }
 }

@@ -26,19 +26,21 @@ export DB_PASSWORD='your-database-password'
 export JWT_SECRET='at-least-32-random-bytes-for-local-development'
 export ADMIN_EMAIL=admin@gqibindlala.co.za
 export ADMIN_PASSWORD='a-unique-password-of-at-least-10-characters'
-export RESEND_API_KEY='set-this-in-your-shell-or-secret-manager'
-export RESEND_FROM_EMAIL='onboarding@resend.dev'
+export BREVO_API_KEY='set-this-in-your-shell-or-secret-manager'
+export BREVO_FROM_EMAIL='verified-sender@example.com'
+export BREVO_SENDER_NAME='Gqibindlala'
 export PUBLIC_APP_URL='http://localhost:5173'
 export CLOUDINARY_CLOUD_NAME='your-cloud-name'
 export CLOUDINARY_API_KEY='your-api-key'
 export CLOUDINARY_API_SECRET='set-this-in-your-shell-or-secret-manager'
 ```
 
-The first backend startup creates the initial administrator if `ADMIN_EMAIL` and `ADMIN_PASSWORD` are set and that login identifier does not already exist. Set passwords and API secrets as environment secrets; do not commit them. Once signed in at `/account`, the supervisor creates departments and staff accounts, then reviews inventory proposals. Department staff propose new items with photos, stock, and prices; proposals become customer-visible only after approval. Customer registration is public, sends a verification link through Resend, and can only create customer-role accounts. Staff login IDs use the domain configured for their department and do not deliver email. Site staff/customer communication happens in each order's message thread.
+The first backend startup creates the initial administrator if `ADMIN_EMAIL` and `ADMIN_PASSWORD` are set and that login identifier does not already exist. Set passwords and API secrets as environment secrets; do not commit them. Once signed in at `/account`, the supervisor creates departments and staff accounts, then reviews inventory proposals. Staff receive a single-use activation link at their personal email and set their own password; the generated department login identifier is included in that email. Customer registration is public, sends a verification link, and can only create customer-role accounts. Site staff/customer communication happens in each order's message thread.
 
 **Backend** (Java 21 and Maven):
 ```bash
 cd backend
+if [[ -f ../.env ]]; then set -a; source ../.env; set +a; fi
 mvn spring-boot:run
 ```
 
@@ -57,7 +59,7 @@ There is not yet a payment gateway integration. The current workflow accepts a p
 
 ## Provider integrations
 
-- **Customer email verification:** [Resend API](https://resend.com/docs) sends single-use verification links. Configure `RESEND_API_KEY` and `RESEND_FROM_EMAIL`; the `onboarding@resend.dev` sender is for testing and production requires an authorized sender domain. Staff accounts do not send email.
+- **Account email:** [Brevo Transactional Email API](https://developers.brevo.com/reference/send-transac-email) sends customer verification links and staff activation links. Configure `BREVO_API_KEY` and a Brevo-verified `BREVO_FROM_EMAIL`; `BREVO_SENDER_NAME` is optional. Both link types are single-use and expire after 24 hours.
 - **Equipment images:** [Cloudinary Upload API](https://cloudinary.com/documentation/image_upload_api_reference) receives admin uploads through a short-lived signed request. Configure `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET`. The secret remains backend-only.
 - **South African checkout:** evaluate [PayFast](https://developers.payfast.co.za/) first; compare its current merchant and transaction fees with [Yoco](https://developer.yoco.com/). The app currently supports manual payment reference review only. Gateway payment must be confirmed by a verified webhook.
 - **Authentication and data:** authentication is implemented in the existing Spring Security/JWT backend; PostgreSQL and Flyway persist accounts, departments, inventory, orders, and in-site conversations.

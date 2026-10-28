@@ -49,6 +49,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/departments/admin").hasRole("ADMIN")
                 .requestMatchers("/api/departments/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/auth/activate-staff").permitAll()
                 .requestMatchers(HttpMethod.PUT, "/api/auth/verify-email").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/bookings").hasRole("CUSTOMER")
                 .requestMatchers(HttpMethod.GET, "/api/bookings/mine").hasRole("CUSTOMER")

@@ -23,15 +23,18 @@ public class AuthService {
     private final AppUserRepository userRepository;
     private final DepartmentRepository departmentRepository;
     private final EmailVerificationService emailVerificationService;
+    private final StaffActivation staffActivationService;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
 
     public AuthService(AppUserRepository userRepository, DepartmentRepository departmentRepository,
                        EmailVerificationService emailVerificationService,
+                       StaffActivation staffActivationService,
                        PasswordEncoder passwordEncoder, JwtService jwtService) {
         this.userRepository = userRepository;
         this.departmentRepository = departmentRepository;
         this.emailVerificationService = emailVerificationService;
+        this.staffActivationService = staffActivationService;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
     }
@@ -78,6 +81,10 @@ public class AuthService {
         if (request.departmentId() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Choose a department for staff access");
         }
+        String personalEmail = normalizeOptionalEmail(request.personalEmail());
+        if (personalEmail == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A personal email is required for staff activation");
+        }
         Department department = departmentRepository.findById(request.departmentId())
             .filter(Department::isActive)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Choose an active department"));
@@ -89,13 +96,12 @@ public class AuthService {
         }
         AppUser user = new AppUser();
         user.setFullName(request.fullName().trim());
-        user.setPersonalEmail(normalizeOptionalEmail(request.personalEmail()));
+        user.setPersonalEmail(personalEmail);
         user.setLoginIdentifier(generateStaffIdentifier(user.getFullName(), department));
         user.setPhone(request.phone().trim());
-        user.setPasswordHash(passwordEncoder.encode(request.temporaryPassword()));
         user.setRole(request.role());
         user.setDepartment(department);
-        return UserResponse.from(userRepository.save(user));
+        return UserResponse.from(staffActivationService.createPendingAccount(user));
     }
 
     @Transactional(readOnly = true)
@@ -111,8 +117,26 @@ public class AuthService {
         if (user.getRole() != AppRole.DEPARTMENT && user.getRole() != AppRole.PAYMENTS) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only staff accounts can be managed here");
         }
+        if (active && !user.isStaffActivated()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Staff must activate their account using the email link");
+        }
         user.setActive(active);
         return UserResponse.from(userRepository.save(user));
+    }
+
+    @Transactional
+    public void resendStaffActivation(Long userId) {
+        AppUser user = userRepository.findById(userId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Staff account not found"));
+        if (user.getRole() != AppRole.DEPARTMENT && user.getRole() != AppRole.PAYMENTS) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only staff accounts can be activated here");
+        }
+        staffActivationService.sendActivation(user);
+    }
+
+    @Transactional
+    public void activateStaff(String token, String password) {
+        staffActivationService.activate(token, password);
     }
 
     private AuthResponse createResponse(AppUser user) {

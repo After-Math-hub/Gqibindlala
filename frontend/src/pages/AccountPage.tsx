@@ -1,3 +1,4 @@
+import { isAxiosError } from "axios";
 import { FormEvent, useEffect, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import {
@@ -309,7 +310,6 @@ function StaffProvisionForm() {
   const [fullName, setFullName] = useState("");
   const [personalEmail, setPersonalEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [temporaryPassword, setTemporaryPassword] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -338,19 +338,31 @@ function StaffProvisionForm() {
       const department = departments.find((entry) => entry.id === Number(departmentId));
       const created = await createStaffAccount({
         fullName,
-        personalEmail: personalEmail.trim() || null,
+        personalEmail: personalEmail.trim(),
         phone,
-        temporaryPassword,
         role: department?.slug === "finance" ? "PAYMENTS" : "DEPARTMENT",
         departmentId: Number(departmentId),
       });
-      setMessage(`Site login created: ${created.loginIdentifier}. No email was sent.`);
+      setMessage(`Activation email sent for site login: ${created.loginIdentifier}.`);
       setFullName("");
       setPersonalEmail("");
       setPhone("");
-      setTemporaryPassword("");
-    } catch {
-      setError("The staff account couldn't be created. Check the login name and department.");
+    } catch (error) {
+      if (isAxiosError(error)) {
+        const status = error.response?.status;
+        const apiMessage = error.response?.data?.message;
+        if (status === 502 || status === 503 || apiMessage === "Email could not be sent") {
+          setError("The account could not be activated by email. Check the Brevo API key and verified sender configuration.");
+        } else if (status === 401 || status === 403) {
+          setError("Your admin session may have expired. Sign in again and retry.");
+        } else if (typeof apiMessage === "string" && apiMessage.length > 0) {
+          setError(apiMessage);
+        } else {
+          setError("The staff account couldn't be created. Check the staff details and selected department.");
+        }
+      } else {
+        setError("The staff account couldn't be created. Check the staff details and selected department.");
+      }
     } finally {
       setSaving(false);
     }
@@ -359,12 +371,11 @@ function StaffProvisionForm() {
   return (
     <section className="staff-provision">
       <div className="account-section-title"><div><span className="step-number">03</span><h2>Create a staff account</h2></div></div>
-      <p className="staff-form-intro">Access follows the assigned department. Staff sign in with a generated site login; no work email is sent.</p>
+      <p className="staff-form-intro">Access follows the assigned department. Staff receive a one-time activation link at their personal email and set their own password.</p>
       <form className="staff-create-form" onSubmit={(event) => void handleSubmit(event)}>
         <label className="field-label">Full name<input required value={fullName} onChange={(event) => setFullName(event.target.value)} /></label>
-        <label className="field-label">Personal email (optional)<input type="email" value={personalEmail} onChange={(event) => setPersonalEmail(event.target.value)} /></label>
+        <label className="field-label">Personal email<input type="email" required value={personalEmail} onChange={(event) => setPersonalEmail(event.target.value)} /></label>
         <label className="field-label">Phone<input required value={phone} onChange={(event) => setPhone(event.target.value)} /></label>
-        <label className="field-label">Initial password<input required type="password" minLength={10} value={temporaryPassword} onChange={(event) => setTemporaryPassword(event.target.value)} /></label>
         <label className="field-label">Department<select required value={departmentId} onChange={(event) => setDepartmentId(event.target.value)}>{departments.map((department) => <option value={department.id} key={department.id}>{department.name}</option>)}</select></label>
         <button className="button button-gold" type="submit" disabled={saving || !departmentId}>{saving ? "Creating…" : "Create staff account"}</button>
       </form>

@@ -1,6 +1,7 @@
 package com.gqibindlala.booking.controller;
 
 import com.gqibindlala.booking.dto.AuthResponse;
+import com.gqibindlala.booking.dto.ActivateStaffRequest;
 import com.gqibindlala.booking.dto.LoginRequest;
 import com.gqibindlala.booking.dto.RegisterRequest;
 import com.gqibindlala.booking.dto.RegistrationResponse;
@@ -43,10 +44,16 @@ public class AuthController {
         return new RegistrationResponse("Email verified. You can now sign in.");
     }
 
+    @PostMapping("/activate-staff")
+    public RegistrationResponse activateStaff(@Valid @RequestBody ActivateStaffRequest request) {
+        authService.activateStaff(request.token(), request.password());
+        return new RegistrationResponse("Staff account activated. You can now sign in.");
+    }
+
     @GetMapping("/me")
     public UserResponse me(@AuthenticationPrincipal AuthPrincipal principal) {
         return new UserResponse(principal.id(), principal.fullName(), principal.loginIdentifier(),
             principal.personalEmail(), principal.phone(), principal.role(), principal.departmentId(),
-            principal.departmentName(), true);
+            principal.departmentName(), true, true);
     }
 }

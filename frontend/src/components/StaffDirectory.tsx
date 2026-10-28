@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { fetchStaffUsers, setStaffUserActive } from "../api/client";
+import { fetchStaffUsers, resendStaffActivation, setStaffUserActive } from "../api/client";
 import { UserProfile } from "../types/equipment";
 
 export default function StaffDirectory() {
@@ -31,6 +31,18 @@ export default function StaffDirectory() {
     }
   }
 
+  async function resendActivation(user: UserProfile) {
+    setSavingId(user.id);
+    setError("");
+    try {
+      await resendStaffActivation(user.id);
+    } catch {
+      setError("The activation email could not be sent.");
+    } finally {
+      setSavingId(null);
+    }
+  }
+
   return (
     <section className="staff-provision staff-directory">
       <div className="account-section-title"><div><span className="step-number">04</span><h2>Staff access</h2></div><span>{staff.length} accounts</span></div>
@@ -42,8 +54,10 @@ export default function StaffDirectory() {
           <article className="staff-directory-row" key={user.id}>
             <div className="staff-directory-identity"><strong>{user.fullName}</strong><span>{user.loginIdentifier}</span></div>
             <div className="staff-directory-department"><strong>{user.departmentName ?? "Finance"}</strong><span>{user.role === "PAYMENTS" ? "Payment review" : "Department"}</span></div>
-            <span className={user.active ? "department-active" : "department-inactive"}>{user.active ? "Active" : "Inactive"}</span>
-            <button type="button" className="text-button" disabled={savingId === user.id} onClick={() => void toggle(user)}>{user.active ? "Deactivate" : "Reactivate"}</button>
+            <span className={user.staffActivated ? (user.active ? "department-active" : "department-inactive") : "department-inactive"}>{user.staffActivated ? (user.active ? "Active" : "Inactive") : "Pending activation"}</span>
+            {user.staffActivated
+              ? <button type="button" className="text-button" disabled={savingId === user.id} onClick={() => void toggle(user)}>{user.active ? "Deactivate" : "Reactivate"}</button>
+              : <button type="button" className="text-button" disabled={savingId === user.id} onClick={() => void resendActivation(user)}>{savingId === user.id ? "Sending…" : "Resend activation"}</button>}
           </article>
         ))}
       </div>

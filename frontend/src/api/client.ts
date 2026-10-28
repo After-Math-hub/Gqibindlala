@@ -32,6 +32,11 @@ export async function verifyEmail(token: string): Promise<{ message: string }> {
   return data;
 }
 
+export async function activateStaff(token: string, password: string): Promise<{ message: string }> {
+  const { data } = await api.post<{ message: string }>("/auth/activate-staff", { token, password });
+  return data;
+}
+
 export async function loginAccount(loginIdentifier: string, password: string) {
   const { data } = await api.post<AuthResponse>("/auth/login", { loginIdentifier, password });
   return data;
@@ -192,9 +197,8 @@ export async function issueQuotation(itemId: number): Promise<BookingRecord> {
 
 export async function createStaffAccount(details: {
   fullName: string;
-  personalEmail: string | null;
+  personalEmail: string;
   phone: string;
-  temporaryPassword: string;
   role: "DEPARTMENT" | "PAYMENTS";
   departmentId: number;
 }) {
@@ -209,6 +213,11 @@ export async function fetchStaffUsers(): Promise<UserProfile[]> {
 
 export async function setStaffUserActive(userId: number, active: boolean): Promise<UserProfile> {
   const { data } = await api.patch<UserProfile>(`/staff/${userId}/active`, undefined, { params: { active } });
+  return data;
+}
+
+export async function resendStaffActivation(userId: number): Promise<{ message: string }> {
+  const { data } = await api.post<{ message: string }>(`/staff/${userId}/activation`);
   return data;
 }
 

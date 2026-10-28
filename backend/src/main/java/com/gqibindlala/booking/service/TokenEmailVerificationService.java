@@ -17,15 +17,15 @@ import java.util.Base64;
 import java.util.HexFormat;
 
 @Service
-public class ResendEmailVerificationService implements EmailVerificationService {
+public class TokenEmailVerificationService implements EmailVerificationService {
     private final EmailVerificationTokenRepository tokenRepository;
-    private final ResendEmailService emailService;
+    private final BrevoEmailService emailService;
     private final String publicUrl;
     private final SecureRandom secureRandom = new SecureRandom();
 
-    public ResendEmailVerificationService(EmailVerificationTokenRepository tokenRepository,
-                                          ResendEmailService emailService,
-                                          @Value("${app.public-url:http://localhost:5173}") String publicUrl) {
+    public TokenEmailVerificationService(EmailVerificationTokenRepository tokenRepository,
+                                         BrevoEmailService emailService,
+                                         @Value("${app.public-url:http://localhost:5173}") String publicUrl) {
         this.tokenRepository = tokenRepository;
         this.emailService = emailService;
         this.publicUrl = publicUrl.replaceAll("/$", "");

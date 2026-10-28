@@ -33,11 +33,12 @@ app:
   bootstrap-admin:
     email: ${ADMIN_EMAIL:admin@gqibindlala.co.za}
     password: ${ADMIN_PASSWORD:}
-    full-name: ${ADMIN_FULL_NAME:Initial administrator}
+    full-name: ${ADMIN_FULL_NAME:System Administrator}
 
-resend:
-  api-key: ${RESEND_API_KEY:}
-  from: ${RESEND_FROM_EMAIL:onboarding@resend.dev}
+brevo:
+  api-key: ${BREVO_API_KEY:}
+  from: ${BREVO_FROM_EMAIL:}
+  sender-name: ${BREVO_SENDER_NAME:Gqibindlala}
 
 cloudinary:
   cloud-name: ${CLOUDINARY_CLOUD_NAME:}
