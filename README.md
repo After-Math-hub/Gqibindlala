@@ -37,6 +37,8 @@ export CLOUDINARY_API_SECRET='set-this-in-your-shell-or-secret-manager'
 
 The first backend startup creates the initial administrator if `ADMIN_EMAIL` and `ADMIN_PASSWORD` are set and that login identifier does not already exist. Set passwords and API secrets as environment secrets; do not commit them. Once signed in at `/account`, the supervisor creates departments and staff accounts, then reviews inventory proposals. Staff receive a single-use activation link at their personal email and set their own password; the generated department login identifier is included in that email. Customer registration is public, sends a verification link, and can only create customer-role accounts. Site staff/customer communication happens in each order's message thread.
 
+For a Render deployment, add `ADMIN_PASSWORD` as a secret environment variable on the backend service, keep `ADMIN_EMAIL` set to the intended login (it defaults to `admin@gqibindlala.co.za`), and redeploy. The app creates the account only if that login identifier is not already in the database; it will not reset an existing account's password. Startup logs report whether the account was created, already existed, or could not be created because the password is missing.
+
 **Backend** (Java 21 and Maven):
 ```bash
 cd backend
