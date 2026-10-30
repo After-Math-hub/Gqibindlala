@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 
 import com.gqibindlala.booking.dto.RegisterRequest;
 import com.gqibindlala.booking.dto.CreateStaffRequest;
+import com.gqibindlala.booking.dto.LoginRequest;
 import com.gqibindlala.booking.model.AppRole;
 import com.gqibindlala.booking.model.AppUser;
 import com.gqibindlala.booking.model.Department;
@@ -79,6 +80,54 @@ class AuthServiceTest {
     }
 
     @Test
+    void loginNormalizesIdentifierAndAcceptsMatchingBcryptPassword() {
+        AppUser admin = loginUser("admin@gqibindlala.co.za", AppRole.ADMIN, true, true, "correct-password");
+        when(userRepository.findByLoginIdentifier("admin@gqibindlala.co.za"))
+            .thenReturn(java.util.Optional.of(admin));
+
+        var response = authService.login(new LoginRequest(" ADMIN@GQIBINDLALA.CO.ZA ", "correct-password"));
+
+        assertEquals("admin@gqibindlala.co.za", response.user().loginIdentifier());
+    }
+
+    @Test
+    void loginRejectsPasswordThatDoesNotMatchTheStoredBcryptHash() {
+        AppUser admin = loginUser("admin@gqibindlala.co.za", AppRole.ADMIN, true, true, "original-password");
+        when(userRepository.findByLoginIdentifier("admin@gqibindlala.co.za"))
+            .thenReturn(java.util.Optional.of(admin));
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+            () -> authService.login(new LoginRequest("admin@gqibindlala.co.za", "different-password")));
+
+        assertEquals(org.springframework.http.HttpStatus.UNAUTHORIZED, exception.getStatusCode());
+        assertEquals("Invalid email or password", exception.getReason());
+    }
+
+    @Test
+    void loginRejectsInactiveAdminEvenWhenPasswordMatches() {
+        AppUser admin = loginUser("admin@gqibindlala.co.za", AppRole.ADMIN, false, true, "correct-password");
+        when(userRepository.findByLoginIdentifier("admin@gqibindlala.co.za"))
+            .thenReturn(java.util.Optional.of(admin));
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+            () -> authService.login(new LoginRequest("admin@gqibindlala.co.za", "correct-password")));
+
+        assertEquals(org.springframework.http.HttpStatus.UNAUTHORIZED, exception.getStatusCode());
+    }
+
+    @Test
+    void loginRejectsStaffAccountThatHasNotCompletedActivation() {
+        AppUser staff = loginUser("staff@example.com", AppRole.DEPARTMENT, true, false, "correct-password");
+        when(userRepository.findByLoginIdentifier("staff@example.com"))
+            .thenReturn(java.util.Optional.of(staff));
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+            () -> authService.login(new LoginRequest("staff@example.com", "correct-password")));
+
+        assertEquals(org.springframework.http.HttpStatus.UNAUTHORIZED, exception.getStatusCode());
+    }
+
+    @Test
     void departmentStaffRequiresDepartmentAssignment() {
         assertThrows(ResponseStatusException.class, () -> authService.createStaff(new CreateStaffRequest(
             "Chair desk", "chair@example.com", "0710000000", AppRole.DEPARTMENT, null)));
@@ -92,6 +141,19 @@ class AuthServiceTest {
         when(departmentRepository.findById(5L)).thenReturn(java.util.Optional.of(chairs));
         assertThrows(ResponseStatusException.class, () -> authService.createStaff(new CreateStaffRequest(
             "Payments desk", "payments@example.com", "0710000000", AppRole.PAYMENTS, 5L)));
+    }
+
+    private AppUser loginUser(String identifier, AppRole role, boolean active, boolean staffActivated, String password) {
+        AppUser user = new AppUser();
+        user.setId(1L);
+        user.setFullName("Test Account");
+        user.setLoginIdentifier(identifier);
+        user.setPhone("Not provided");
+        user.setRole(role);
+        user.setActive(active);
+        user.setStaffActivated(staffActivated);
+        user.setPasswordHash(passwordEncoder.encode(password));
+        return user;
     }
 
     @Test

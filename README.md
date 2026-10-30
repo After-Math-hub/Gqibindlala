@@ -39,6 +39,8 @@ The first backend startup creates the initial administrator if `ADMIN_EMAIL` and
 
 For a Render deployment, add `ADMIN_PASSWORD` as a secret environment variable on the backend service, keep `ADMIN_EMAIL` set to the intended login (it defaults to `admin@gqibindlala.co.za`), and redeploy. The app creates the account only if that login identifier is not already in the database; it will not reset an existing account's password. Startup logs report whether the account was created, already existed, or could not be created because the password is missing.
 
+If the existing administrator password must be reset, first deploy the migration that adds the one-time reset guard. Then set `ADMIN_PASSWORD` to the new secret and `ADMIN_PASSWORD_RESET_ONCE=true` on the Render backend, and redeploy. The existing account is reset only if it exists and has the `ADMIN` role. The database guard prevents subsequent application startups from resetting it again, even if the flag is accidentally left enabled. Remove `ADMIN_PASSWORD_RESET_ONCE` (or set it to `false`) after the reset deployment. Do not put the password in source control or logs.
+
 **Backend** (Java 21 and Maven):
 ```bash
 cd backend

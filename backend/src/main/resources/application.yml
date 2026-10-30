@@ -36,6 +36,7 @@ app:
     email: ${ADMIN_EMAIL:admin@gqibindlala.co.za}
     password: ${ADMIN_PASSWORD:}
     full-name: ${ADMIN_FULL_NAME:System Administrator}
+    reset-existing-password-once: ${ADMIN_PASSWORD_RESET_ONCE:false}
 
 brevo:
   api-key: ${BREVO_API_KEY:}

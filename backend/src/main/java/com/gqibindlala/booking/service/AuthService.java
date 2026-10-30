@@ -11,6 +11,8 @@ import com.gqibindlala.booking.model.Department;
 import com.gqibindlala.booking.repository.AppUserRepository;
 import com.gqibindlala.booking.repository.DepartmentRepository;
 import com.gqibindlala.booking.security.JwtService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -20,6 +22,8 @@ import java.util.Locale;
 
 @Service
 public class AuthService {
+    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
+
     private final AppUserRepository userRepository;
     private final DepartmentRepository departmentRepository;
     private final EmailVerificationService emailVerificationService;
@@ -64,9 +68,34 @@ public class AuthService {
 
     @Transactional(readOnly = true)
     public AuthResponse login(LoginRequest request) {
-        AppUser user = userRepository.findByLoginIdentifier(normalizeIdentifier(request.loginIdentifier()))
-            .filter(candidate -> candidate.isActive() && passwordEncoder.matches(request.password(), candidate.getPasswordHash()))
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid email or password"));
+        String identifier = normalizeIdentifier(request.loginIdentifier());
+        AppUser user = userRepository.findByLoginIdentifier(identifier).orElse(null);
+        if (user == null) {
+            log.warn("Login rejected: no account matched login identifier {}", maskIdentifier(identifier));
+            throw invalidCredentials();
+        }
+
+        final boolean passwordMatches;
+        try {
+            passwordMatches = passwordEncoder.matches(request.password(), user.getPasswordHash());
+        } catch (IllegalArgumentException exception) {
+            log.error("Login rejected: stored password hash is invalid for account {}",
+                maskIdentifier(identifier));
+            throw invalidCredentials();
+        }
+        if (!user.isActive()) {
+            log.warn("Login rejected: account {} is inactive", maskIdentifier(identifier));
+            throw invalidCredentials();
+        }
+        if ((user.getRole() == AppRole.DEPARTMENT || user.getRole() == AppRole.PAYMENTS)
+                && !user.isStaffActivated()) {
+            log.warn("Login rejected: staff account {} has not completed activation", maskIdentifier(identifier));
+            throw invalidCredentials();
+        }
+        if (!passwordMatches) {
+            log.warn("Login rejected: password did not match account {}", maskIdentifier(identifier));
+            throw invalidCredentials();
+        }
         if (user.getRole() == AppRole.CUSTOMER && !user.isEmailVerified()) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Verify your email before signing in");
         }
@@ -145,6 +174,16 @@ public class AuthService {
 
     private String normalizeIdentifier(String identifier) {
         return identifier.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private String maskIdentifier(String identifier) {
+        int atIndex = identifier.indexOf('@');
+        String prefix = atIndex >= 0 ? identifier.substring(0, atIndex) : identifier;
+        return (prefix.isEmpty() ? "" : prefix.substring(0, 1)) + "***";
+    }
+
+    private ResponseStatusException invalidCredentials() {
+        return new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid email or password");
     }
 
     private String normalizeOptionalEmail(String email) {
