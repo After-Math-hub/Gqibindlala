@@ -63,13 +63,26 @@ function AuthPanel({ redirectTo }: { redirectTo: string }) {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
+    const formData = new FormData(event.currentTarget);
+    const formEmail = String(formData.get("email") ?? "").trim();
+    const formPassword = String(formData.get("password") ?? "");
+    if (!formEmail || !formPassword) {
+      setError("Enter your email and password.");
+      return;
+    }
+
     setSubmitting(true);
     try {
       if (registering) {
-        await register({ fullName, email, phone, password });
-        setVerificationSentTo(email);
+        await register({
+          fullName: String(formData.get("fullName") ?? "").trim(),
+          email: formEmail,
+          phone: String(formData.get("phone") ?? "").trim(),
+          password: formPassword,
+        });
+        setVerificationSentTo(formEmail);
         return;
-      } else await login(email, password);
+      } else await login(formEmail, formPassword);
       navigate(redirectTo, { replace: true });
     } catch (requestError) {
       const requestFailure = requestError as { response?: { data?: { message?: string; detail?: string } } };
@@ -109,10 +122,10 @@ function AuthPanel({ redirectTo }: { redirectTo: string }) {
           <p>{registering ? "Your details will be ready whenever you next book." : "Sign in to pick up where you left off."}</p>
         </div>
         <form className="account-form" onSubmit={handleSubmit}>
-          {registering && <label className="field-label">Full name<input required autoComplete="name" value={fullName} onChange={(event) => setFullName(event.target.value)} /></label>}
-          <label className="field-label">Email<input required type="email" autoComplete="username" value={email} onChange={(event) => setEmail(event.target.value)} /></label>
-          {registering && <label className="field-label">Phone number<input required autoComplete="tel" value={phone} onChange={(event) => setPhone(event.target.value)} /></label>}
-          <label className="field-label">Password<input required type="password" autoComplete={registering ? "new-password" : "current-password"} minLength={registering ? 10 : undefined} value={password} onChange={(event) => setPassword(event.target.value)} /><span className="field-note">{registering ? "Use at least 10 characters." : ""}</span></label>
+          {registering && <label className="field-label">Full name<input name="fullName" required autoComplete="name" value={fullName} onChange={(event) => setFullName(event.target.value)} /></label>}
+          <label className="field-label">Email<input name="email" required type="email" autoComplete="username" value={email} onChange={(event) => setEmail(event.target.value)} /></label>
+          {registering && <label className="field-label">Phone number<input name="phone" required autoComplete="tel" value={phone} onChange={(event) => setPhone(event.target.value)} /></label>}
+          <label className="field-label">Password<input name="password" required type="password" autoComplete={registering ? "new-password" : "current-password"} minLength={registering ? 10 : undefined} value={password} onChange={(event) => setPassword(event.target.value)} /><span className="field-note">{registering ? "Use at least 10 characters." : ""}</span></label>
           {error && <p className="form-alert" role="alert">{error}</p>}
           <button className="button button-gold auth-submit" type="submit" disabled={submitting}>{submitting ? "Please wait…" : registering ? "Create your account" : "Sign in"}<span aria-hidden="true">↗</span></button>
         </form>
