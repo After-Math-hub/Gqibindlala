@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gqibindlala.booking.model.AppRole;
 import com.gqibindlala.booking.model.AppUser;
 import com.gqibindlala.booking.model.StaffActivationToken;
@@ -35,7 +36,8 @@ class StaffActivationServiceTest {
         tokenRepository = mock(StaffActivationTokenRepository.class);
         passwordEncoder = new BCryptPasswordEncoder();
         activationService = new StaffActivationService(userRepository, tokenRepository,
-            new BrevoEmailService(org.springframework.web.client.RestClient.builder(), "", "", "Gqibindlala"),
+            new BrevoEmailService(org.springframework.web.client.RestClient.builder(), new ObjectMapper(),
+                "", "", "Gqibindlala"),
             passwordEncoder, "http://localhost:5173");
     }
 
